@@ -1,12 +1,33 @@
 # keycloak-event-listener-http
 
 A Keycloak SPI that publishes events to an HTTP Webhook.
-A (largely) adaptation of @mhui mhuin/keycloak-event-listener-mqtt SPI
+A (largely) adaptation of @mhui mhuin/keycloak-event-listener-mqtt SPI.
+Extended by @darrensapalo to [enable building the JAR files from docker images](https://sapalo.dev/2021/06/16/send-keycloak-webhook-events/).
 
 # Build
 
+## Build on your local machine
+
 ```
 mvn clean install
+```
+
+## Build using docker
+
+Alternatively, you can [build the JAR files from a docker image](https://sapalo.dev/2021/06/16/send-keycloak-webhook-events/). You must have `docker` installed.
+
+1. Run `make package-image`.
+2. The JAR files should show up on your `mvn-output` folder.
+
+If you encounter the following issue: 
+```
+open {PATH}/mvn-output/event-listener-http-jar-with-dependencies.jar: permission denied
+```
+
+Simply add write permissions to the `mvn-output` folder:
+
+```
+sudo chown $USER:$USER mvn-output
 ```
 
 # Deploy
