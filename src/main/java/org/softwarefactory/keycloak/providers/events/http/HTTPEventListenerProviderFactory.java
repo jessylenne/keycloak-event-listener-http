@@ -39,11 +39,10 @@ public class HTTPEventListenerProviderFactory implements EventListenerProviderFa
     private String serverUri;
     private String username;
     private String password;
-    private String topic;
 
     @Override
     public EventListenerProvider create(KeycloakSession session) {
-        return new HTTPEventListenerProvider(excludedEvents, excludedAdminOperations, serverUri, username, password, topic);
+        return new HTTPEventListenerProvider(excludedEvents, excludedAdminOperations, serverUri, username, password);
     }
 
     @Override
@@ -64,10 +63,12 @@ public class HTTPEventListenerProviderFactory implements EventListenerProviderFa
             }
         }
 
-        serverUri = config.get("serverUri", "http://nginx/frontend_dev.php/webhook/keycloak");
-        username = config.get("username", null);
-        password = config.get("password", null);
-        topic = config.get("topic", "keycloak/events");
+        HTTPEventConfiguration configuration = HTTPEventConfiguration.createFromScope(config);
+
+
+        serverUri = configuration.getServerUri();
+        username = configuration.getUsername();
+        password = configuration.getPassword();
     }
 
     @Override

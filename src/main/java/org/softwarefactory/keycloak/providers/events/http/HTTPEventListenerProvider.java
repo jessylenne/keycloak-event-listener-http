@@ -43,15 +43,13 @@ public class HTTPEventListenerProvider implements EventListenerProvider {
     private String username;
     private String password;
     public static final String publisherId = "keycloak";
-    public String TOPIC;
 
-    public HTTPEventListenerProvider(Set<EventType> excludedEvents, Set<OperationType> excludedAdminOperations, String serverUri, String username, String password, String topic) {
+    public HTTPEventListenerProvider(Set<EventType> excludedEvents, Set<OperationType> excludedAdminOperations, String serverUri, String username, String password) {
         this.excludedEvents = excludedEvents;
         this.excludedAdminOperations = excludedAdminOperations;
         this.serverUri = serverUri;
         this.username = username;
         this.password = password;
-        this.TOPIC = topic;
     }
 
     @Override
@@ -87,8 +85,7 @@ public class HTTPEventListenerProvider implements EventListenerProvider {
                 // Get response body
                 System.out.println(response.body().string());
             } catch(Exception e) {
-                // ?
-                System.out.println("UH OH!! " + e.toString());
+                System.out.println("An error occured while reacting to event : " + e.toString());
                 e.printStackTrace();
                 return;
             }
