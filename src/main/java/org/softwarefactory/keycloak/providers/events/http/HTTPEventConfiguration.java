@@ -19,6 +19,9 @@ package org.softwarefactory.keycloak.providers.events.http;
 
 import org.keycloak.Config.Scope;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 /**
  * @author <a href="mailto:traore_a@outlook.com">Abdoulaye Traore</a>
  */
@@ -27,6 +30,8 @@ public class HTTPEventConfiguration {
     private String serverUri;
 	private String username;
 	private String password;
+
+	public static final ObjectMapper httpEventConfigurationObjectMapper = new ObjectMapper();
 	
 	public static HTTPEventConfiguration createFromScope(Scope config) {
 		HTTPEventConfiguration configuration = new HTTPEventConfiguration();
@@ -55,6 +60,24 @@ public class HTTPEventConfiguration {
 		return value;
 		
 	}
+
+	public static String writeAsJson(Object object, boolean isPretty) {
+		String messageAsJson = "unparsable";
+		try {
+			if(isPretty) {
+				messageAsJson = HTTPEventConfiguration.httpEventConfigurationObjectMapper
+						.writerWithDefaultPrettyPrinter().writeValueAsString(object);
+			} else {
+				messageAsJson = HTTPEventConfiguration.httpEventConfigurationObjectMapper
+						.writeValueAsString(object);
+			}
+			
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+		}
+		return messageAsJson;
+	}
+	
 	
 	
 	public String getServerUri() {

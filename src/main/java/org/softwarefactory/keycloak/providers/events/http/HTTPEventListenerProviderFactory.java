@@ -27,10 +27,9 @@ import org.keycloak.models.KeycloakSessionFactory;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.lang.Exception;
 
 /**
- * @author <a href="mailto:jessy.lenne@stadline.com">Jessy Lennee</a>
+ * @author <a href="mailto:traore_a@outlook.com">Abdoulaye Traore</a>
  */
 public class HTTPEventListenerProviderFactory implements EventListenerProviderFactory {
 
@@ -42,7 +41,7 @@ public class HTTPEventListenerProviderFactory implements EventListenerProviderFa
 
     @Override
     public EventListenerProvider create(KeycloakSession session) {
-        return new HTTPEventListenerProvider(excludedEvents, excludedAdminOperations, serverUri, username, password);
+        return new HTTPEventListenerProvider(excludedEvents, excludedAdminOperations, serverUri, username, password, session);
     }
 
     @Override
@@ -75,6 +74,7 @@ public class HTTPEventListenerProviderFactory implements EventListenerProviderFa
     public void postInit(KeycloakSessionFactory factory) {
 
     }
+    
     @Override
     public void close() {
     }
