@@ -33,6 +33,18 @@ sudo chown $USER:$USER mvn-output
 # Deploy
 
 * Copy target/event-listener-http-jar-with-dependencies.jar to {KEYCLOAK_HOME}/standalone/deployments
+
+# Configuration
+
+## Option 1
+* Configure the following env variables :
+
+    - HTTP_EVENT_SERVERURI - default: http://127.0.0.1:8080/webhook
+    - HTTP_EVENT_USERNAME - default: keycloak
+    - HTTP_EVENT_PASSWORD - default: keycloak
+
+* Restart the keycloak server.
+## Option 2
 * Edit standalone.xml to configure the Webhook settings. Find the following
   section in the configuration:
 
@@ -50,17 +62,16 @@ And add below:
             <property name="serverUri" value="http://127.0.0.1:8080/webhook"/>
             <property name="username" value="auth_user"/>
             <property name="password" value="auth_password"/>
-            <property name="topic" value="my_topic"/>
         </properties>
     </provider>
 </spi>
 ```
+
 Leave username and password out if the service allows anonymous access.
-If unset, the default message topic is "keycloak/events".
 
 * Restart the keycloak server.
 
-# Use
+# Usage
 Add/Update a user, your webhook should be called, looks at the keycloak syslog for debug
 
 Request example
