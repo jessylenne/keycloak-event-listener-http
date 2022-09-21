@@ -166,8 +166,8 @@ public class HTTPEventListenerProvider implements EventListenerProvider {
                 sb.append(e.getValue());
                 sb.append("', ");
             }
-        sb.append("}}");
         }
+        sb.append("}}");
 
         return sb.toString();
     }
