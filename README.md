@@ -1,70 +1,87 @@
 # keycloak-event-listener-http
 
-A Keycloak SPI that publishes events to an HTTP Webhook.
+A KeyCloak SPI that publishes events to an HTTP Webhook.
 A (largely) adaptation of @mhui mhuin/keycloak-event-listener-mqtt SPI.
 Extended by @darrensapalo to [enable building the JAR files from docker images](https://sapalo.dev/2021/06/16/send-keycloak-webhook-events/).
 
-# Build
+## Build
 
-## Build on your local machine
+### Build on your local machine
 
-```
+```sh
 mvn clean install
 ```
 
-## Build using docker
+### Build using docker
 
 Alternatively, you can [build the JAR files from a docker image](https://sapalo.dev/2021/06/16/send-keycloak-webhook-events/). You must have `docker` installed.
 
 1. Run `make package-image`.
 2. The JAR files should show up on your `mvn-output` folder.
 
-If you encounter the following issue: 
+If you encounter the following issue:
+
 ```
 open {PATH}/mvn-output/event-listener-http-jar-with-dependencies.jar: permission denied
 ```
 
 Simply add write permissions to the `mvn-output` folder:
 
-```
+```sh
 sudo chown $USER:$USER mvn-output
 ```
 
-# Deploy
+## Deploy
 
-* Copy target/event-listener-http-jar-with-dependencies.jar to {KEYCLOAK_HOME}/standalone/deployments
-* Edit standalone.xml to configure the Webhook settings. Find the following
-  section in the configuration:
+* Copy `mvn-output/event-listener-http-jar-with-dependencies.jar` to `{KEYCLOAK_HOME}/providers`
+* Configure the webhook settings (see below) using the configuration way you would normally use (see https://www.keycloak.org/server/configuration).
+* Restart the KeyCloak server.
+
+## Configuration
+
+You can set these configuration values for the "SPI Events Listeners" "http" object:
+
+- `server-uri`: the webhook to call
+- `username`: For authentication of the webhook. Leave username and password out if the service allows anonymous access.
+- `password`: For authentication of the webhook. Leave username and password out if the service allows anonymous access.
+- `topic`: unknown. If unset, the default message topic is "keycloak/events".
+- `include-user-events`: A comma separated list of user events you want to get notifications for. Enter `none` of you want to disable notification for user events altogether.
+- `exclude-user-events`: A comma separated list of user events you don't want to get notifications for.
+- `include-admin-events`: A comma separated list of admin events you want to get notifications for. Enter `none` of you want to disable notification for user events altogether.
+- `exclude-admin-events`: A comma separated list of admin events you don't want to get notifications for.
+- `admin-event-resource-path-prefixes`: A comma separated list of path prefixes. Allows you to filter resource paths. Will send notifications for paths that begin with these prefixes.
+- `include-admin-event-representation`: If true, the HTTP webhook request will include the data of CREATE and UPDATE admin events (username etc.)
+
+Example with environment variables:
 
 ```
-<subsystem xmlns="urn:jboss:domain:keycloak-server:1.1">
-    <web-context>auth</web-context>
+KC_SPI_EVENTS_LISTENER_HTTP_SERVER_URI=http://127.0.0.1:8080/webhook
+KC_SPI_EVENTS_LISTENER_HTTP_USERNAME=auth_user
+KC_SPI_EVENTS_LISTENER_HTTP_PASSWORD=auth_password
+KC_SPI_EVENTS_LISTENER_HTTP_TOPIC=my_topic
+KC_SPI_EVENTS_LISTENER_HTTP_INCLUDE_USER_EVENTS=none
+KC_SPI_EVENTS_LISTENER_HTTP_EXCLUDE_USER_EVENTS=LOGIN
+KC_SPI_EVENTS_LISTENER_HTTP_INCLUDE_ADMIN_EVENTS=DELETE
+KC_SPI_EVENTS_LISTENER_HTTP_EXCLUDE_ADMIN_EVENTS=ACTION
+KC_SPI_EVENTS_LISTENER_HTTP_ADMIN_EVENT_RESOURCE_PATH_PREFIXES=users/    
+KC_SPI_EVENTS_LISTENER_HTTP_INCLUDE_ADMIN_EVENT_REPRESENTATION=true
 ```
 
-And add below:
+### Valid user event names
 
-```
-<spi name="eventsListener">
-    <provider name="mqtt" enabled="true">
-        <properties>
-            <property name="serverUri" value="http://127.0.0.1:8080/webhook"/>
-            <property name="username" value="auth_user"/>
-            <property name="password" value="auth_password"/>
-            <property name="topic" value="my_topic"/>
-        </properties>
-    </provider>
-</spi>
-```
-Leave username and password out if the service allows anonymous access.
-If unset, the default message topic is "keycloak/events".
+LOGIN, LOGIN_ERROR, REGISTER, REGISTER_ERROR, LOGOUT, LOGOUT_ERROR, CODE_TO_TOKEN, CODE_TO_TOKEN_ERROR, CLIENT_LOGIN, CLIENT_LOGIN_ERROR, REFRESH_TOKEN, REFRESH_TOKEN_ERROR, INTROSPECT_TOKEN, INTROSPECT_TOKEN_ERROR, FEDERATED_IDENTITY_LINK, FEDERATED_IDENTITY_LINK_ERROR, REMOVE_FEDERATED_IDENTITY, REMOVE_FEDERATED_IDENTITY_ERROR, UPDATE_EMAIL, UPDATE_EMAIL_ERROR, UPDATE_PROFILE, UPDATE_PROFILE_ERROR, UPDATE_PASSWORD, UPDATE_PASSWORD_ERROR, UPDATE_TOTP, UPDATE_TOTP_ERROR, VERIFY_EMAIL, VERIFY_EMAIL_ERROR, REMOVE_TOTP, REMOVE_TOTP_ERROR, REVOKE_GRANT, REVOKE_GRANT_ERROR, SEND_VERIFY_EMAIL, SEND_VERIFY_EMAIL_ERROR, SEND_RESET_PASSWORD, SEND_RESET_PASSWORD_ERROR, SEND_IDENTITY_PROVIDER_LINK, SEND_IDENTITY_PROVIDER_LINK_ERROR, RESET_PASSWORD, RESET_PASSWORD_ERROR, RESTART_AUTHENTICATION, RESTART_AUTHENTICATION_ERROR, INVALID_SIGNATURE, INVALID_SIGNATURE_ERROR, REGISTER_NODE, REGISTER_NODE_ERROR, UNREGISTER_NODE, UNREGISTER_NODE_ERROR, USER_INFO_REQUEST, USER_INFO_REQUEST_ERROR, IDENTITY_PROVIDER_LINK_ACCOUNT, IDENTITY_PROVIDER_LINK_ACCOUNT_ERROR, IDENTITY_PROVIDER_LOGIN, IDENTITY_PROVIDER_LOGIN_ERROR, IDENTITY_PROVIDER_FIRST_LOGIN, IDENTITY_PROVIDER_FIRST_LOGIN_ERROR, IDENTITY_PROVIDER_POST_LOGIN, IDENTITY_PROVIDER_POST_LOGIN_ERROR, IDENTITY_PROVIDER_RESPONSE, IDENTITY_PROVIDER_RESPONSE_ERROR, IDENTITY_PROVIDER_RETRIEVE_TOKEN, IDENTITY_PROVIDER_RETRIEVE_TOKEN_ERROR, IMPERSONATE, IMPERSONATE_ERROR, CUSTOM_REQUIRED_ACTION, CUSTOM_REQUIRED_ACTION_ERROR, EXECUTE_ACTIONS, EXECUTE_ACTIONS_ERROR, EXECUTE_ACTION_TOKEN, EXECUTE_ACTION_TOKEN_ERROR, CLIENT_INFO, CLIENT_INFO_ERROR, CLIENT_REGISTER, CLIENT_REGISTER_ERROR, CLIENT_UPDATE, CLIENT_UPDATE_ERROR, CLIENT_DELETE, CLIENT_DELETE_ERROR, CLIENT_INITIATED_ACCOUNT_LINKING, CLIENT_INITIATED_ACCOUNT_LINKING_ERROR, TOKEN_EXCHANGE, TOKEN_EXCHANGE_ERROR, PERMISSION_TOKEN, PERMISSION_TOKEN_ERROR
 
-* Restart the keycloak server.
+### Valid admin event names
 
-# Use
-Add/Update a user, your webhook should be called, looks at the keycloak syslog for debug
+CREATE, UPDATE, DELETE, ACTION
+
+## Use
+
+When you add or update a user, your webhook should be called. Check the KeyCloak syslog for debugging information.
 
 Request example
-```
+
+```json
 {
     "type": "REGISTER",
     "realmId": "myrealm",

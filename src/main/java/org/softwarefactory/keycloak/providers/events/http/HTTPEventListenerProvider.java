@@ -37,17 +37,25 @@ import java.io.IOException;
  */
 public class HTTPEventListenerProvider implements EventListenerProvider {
 	private final OkHttpClient httpClient = new OkHttpClient();
-    private Set<EventType> excludedEvents;
-    private Set<OperationType> excludedAdminOperations;
+    private Set<EventType> excludedUserEvents;
+    private Set<EventType> includedUserEvents;
+    private Set<OperationType> excludedAdminEvents;
+    private Set<OperationType> includedAdminEvents;
+    private String[] adminEventResourcePathPrefixes;
+    private Boolean includeAdminEventRepresentation;
     private String serverUri;
     private String username;
     private String password;
     public static final String publisherId = "keycloak";
     public String TOPIC;
 
-    public HTTPEventListenerProvider(Set<EventType> excludedEvents, Set<OperationType> excludedAdminOperations, String serverUri, String username, String password, String topic) {
-        this.excludedEvents = excludedEvents;
-        this.excludedAdminOperations = excludedAdminOperations;
+    public HTTPEventListenerProvider(Set<EventType> excludedUserEvents, Set<OperationType> excludedAdminEvents, Set<EventType> includedUserEvents, Set<OperationType> includedAdminEvents, String[] adminEventResourcePathPrefixes, Boolean includeAdminEventRepresentation, String serverUri, String username, String password, String topic) {
+        this.excludedUserEvents = excludedUserEvents;
+        this.excludedAdminEvents = excludedAdminEvents;
+        this.includedUserEvents = includedUserEvents;
+        this.includedAdminEvents = includedAdminEvents;
+        this.adminEventResourcePathPrefixes = adminEventResourcePathPrefixes;
+        this.includeAdminEventRepresentation = includeAdminEventRepresentation;
         this.serverUri = serverUri;
         this.username = username;
         this.password = password;
@@ -55,9 +63,13 @@ public class HTTPEventListenerProvider implements EventListenerProvider {
     }
 
     @Override
-    public void onEvent(Event event) {
+    public void onEvent(Event event) {        
+        if (includedUserEvents != null && !includedUserEvents.contains(event.getType())){
+            return;
+        }
+
         // Ignore excluded events
-        if (excludedEvents != null && excludedEvents.contains(event.getType())) {
+        if (excludedUserEvents != null && excludedUserEvents.contains(event.getType())) {
             return;
         } else {
             String stringEvent = toString(event);
@@ -97,8 +109,26 @@ public class HTTPEventListenerProvider implements EventListenerProvider {
 
     @Override
     public void onEvent(AdminEvent event, boolean includeRepresentation) {
+        if (includedAdminEvents != null && !includedAdminEvents.contains(event.getOperationType())){
+            return;
+        }
+
+        if (adminEventResourcePathPrefixes != null && adminEventResourcePathPrefixes.length > 0) {
+            boolean found = false;
+            for(String prefix :  adminEventResourcePathPrefixes) {
+                String resourcePath = event.getResourcePath();
+                if (resourcePath != null && resourcePath.startsWith(prefix)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return;
+            }
+        }
+
         // Ignore excluded operations
-        if (excludedAdminOperations != null && excludedAdminOperations.contains(event.getOperationType())) {
+        if (excludedAdminEvents != null && excludedAdminEvents.contains(event.getOperationType())) {
             return;
         } else {
             String stringEvent = toString(event);
@@ -140,31 +170,31 @@ public class HTTPEventListenerProvider implements EventListenerProvider {
     private String toString(Event event) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("{'type': '");
+        sb.append("{\"type\": \"");
         sb.append(event.getType());
-        sb.append("', 'realmId': '");
+        sb.append("\", \"realmId\": \"");
         sb.append(event.getRealmId());
-        sb.append("', 'clientId': '");
+        sb.append("\", \"clientId\": \"");
         sb.append(event.getClientId());
-        sb.append("', 'userId': '");
+        sb.append("\", \"userId\": \"");
         sb.append(event.getUserId());
-        sb.append("', 'ipAddress': '");
+        sb.append("\", \"ipAddress\": \"");
         sb.append(event.getIpAddress());
-        sb.append("'");
+        sb.append("\"");
 
         if (event.getError() != null) {
-            sb.append(", 'error': '");
+            sb.append(", \"error\": \"");
             sb.append(event.getError());
-            sb.append("'");
+            sb.append("\"");
         }
-        sb.append(", 'details': {");
+        sb.append(", \"details\": {");
         if (event.getDetails() != null) {
             for (Map.Entry<String, String> e : event.getDetails().entrySet()) {
-                sb.append("'");
+                sb.append("\"");
                 sb.append(e.getKey());
-                sb.append("': '");
+                sb.append("\": \"");
                 sb.append(e.getValue());
-                sb.append("', ");
+                sb.append("\", ");
             }
         }
         sb.append("}}");
@@ -176,24 +206,35 @@ public class HTTPEventListenerProvider implements EventListenerProvider {
     private String toString(AdminEvent adminEvent) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("{'type': '");
-        sb.append(adminEvent.getOperationType());
-        sb.append("', 'realmId': '");
+        OperationType type = adminEvent.getOperationType();
+
+        sb.append("{\"type\": \"");
+        sb.append(type);
+        sb.append("\", \"realmId\": \"");
         sb.append(adminEvent.getAuthDetails().getRealmId());
-        sb.append("', 'clientId': '");
+        sb.append("\", \"clientId\": \"");
         sb.append(adminEvent.getAuthDetails().getClientId());
-        sb.append("', 'userId': '");
+        sb.append("\", \"userId\": \"");
         sb.append(adminEvent.getAuthDetails().getUserId());
-        sb.append("', 'ipAddress': '");
-        sb.append(adminEvent.getAuthDetails().getIpAddress());
-        sb.append("', 'resourcePath': '");
+        sb.append("\", \"ipAddress\": \"");
+        sb.append(adminEvent.getAuthDetails().getIpAddress());        
+        sb.append("\", \"resourcePath\": \"");
         sb.append(adminEvent.getResourcePath());
-        sb.append("'");
+        sb.append("\"");
+
+        if(includeAdminEventRepresentation && (type == OperationType.CREATE 
+                                            || type == OperationType.UPDATE )) {
+            String representation = adminEvent.getRepresentation();
+            if(representation != null) {
+                sb.append(", \"representation\": ");
+                sb.append(representation);
+            }
+        }
 
         if (adminEvent.getError() != null) {
-            sb.append(", 'error': '");
+            sb.append(", \"error\": \"");
             sb.append(adminEvent.getError());
-            sb.append("'");
+            sb.append("\"");
         }
         sb.append("}");
         return sb.toString();
