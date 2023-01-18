@@ -45,7 +45,7 @@ And add below:
 
 ```
 <spi name="eventsListener">
-    <provider name="mqtt" enabled="true">
+    <provider name="http" enabled="true">
         <properties>
             <property name="serverUri" value="http://127.0.0.1:8080/webhook"/>
             <property name="username" value="auth_user"/>
